@@ -91,31 +91,32 @@ for my $dupe ( @dupe_files ) {
 	}
 }
 
-my $min_file_dupe_pct = 1;
-
-for my $d1 ( keys %dir_links ) {
-	for my $d2 ( keys %{$dir_links{$d1}} ) {
-		if ( $src_dirs{$d1}{file_count} eq $src_dirs{$d2}{file_count} && $src_dirs{$d1}{file_count} eq $dir_links{$d1}{$d2} ) {
-			push @recommendations, "Indentical folders: ". $src_dirs{$d1}{dir} ." is identical to ". $src_dirs{$d2}{dir} .", contains ". $dir_links{$d1}{$d2} ." duplicate files";			
+my $unique_file_count = 0;
+for my $file ( keys %src_files ) {
+	if ( $src_files{$file}{is_dupe} != 1  ) {
+		$unique_file_count++;
+	} else {
+		my $did = $src_files{$file}{dir};
+		$src_dirs{$did}{file_dupe_count}++;
+		while ( $did != -1 ) {
+			$src_dirs{$did}{sfile_dupe_count}++;
+			$did = $src_dirs{$did}{parent};
+		}
+	}	
+}
+my $dir_dupe_file_total_pct = 1; # notify if a folder contains more duplicate files than this % of total files
+my $dir_dupe_file_pct = 80; # notify if a folder is this percent dupe
+#for my $dir ( #sort { $src_dirs{$b}{sfile_dupe_count}/$src_dirs{$b}{sfile_count} <=> $src_dirs{$a}{sfile_dupe_count}/$src_dirs{$a}{sfile_count} } 
+#			keys %src_dirs ) {
+for ( my $dir = 1; $dir < $total_dirs; $dir++ ) {
+	if ( $src_dirs{$dir}{sfile_count} > 0 ) {
+		my $pct = 100 * $src_dirs{$dir}{sfile_dupe_count}/$total_files;
+		my $local_pct = 100 * $src_dirs{$dir}{sfile_dupe_count}/$src_dirs{$dir}{sfile_count};
+		if ( $pct > $dir_dupe_file_total_pct || $local_pct > $dir_dupe_file_pct ) {
+			push @recommendations, int($pct)."% of Folder ". $src_dirs{$dir}{dir} ." is duplicated elsewhere (".$src_dirs{$dir}{sfile_dupe_count}." files)";
 		}
 	}
 }
-
-my $dir_file_dupe_pct = 60;
-my $ss = 0;
-
-for my $dir ( keys %src_dirs ) {
-	if ( $src_dirs{$dir}{file_count} > 0 ) {
-		#print "Dir ". $src_dirs{$dir}{dir} ." has files:\n";
-		for my $file ( @{ $src_dirs{$dir}{files} } ) {
-			#print "\t". $src_files{$file}{file} ."\n";
-			$src_dirs{$dir}{file_dupe_count}++ if ( $src_files{$file}{is_dupe} == 1 );
-		}
-		$ss += $src_dirs{$dir}{file_dupe_count};
-		push @recommendations, "Folder ". $src_dirs{$dir}{dir} ." has ". $src_dirs{$dir}{file_dupe_count} ."/". $src_dirs{$dir}{file_count} ." files duplicated elsewhere." if ( 100 * $src_dirs{$dir}{file_dupe_count} / $src_dirs{$dir}{file_count} > $dir_file_dupe_pct );
-	}
-}
-
 
 my %exts;
 for my $file ( keys %filenames  ) {
@@ -140,10 +141,6 @@ if ( $misc_pct > 0 ) {
 	print "\t~". int ($misc_pct) ."% misc\n";
 }
 
-my $unique_file_count = 0;
-for my $file ( keys %src_files ) {
-	$unique_file_count++ if ( $src_files{$file}{is_dupe} != 1 );
-}
 
 print "\nThere are $unique_file_count unique files - ". int( 100 * $unique_file_count/$total_files ) ."% of all files\n";
 
@@ -246,6 +243,7 @@ sub addDir {
 			$src_dirs{$dindex}{dir_count} = 0;
 			$src_dirs{$dindex}{sdir_count} = 0;
 			$src_dirs{$dindex}{file_dupe_count} = 0;
+			$src_dirs{$dindex}{sfile_dupe_count} = 0;
 			$src_dirs{$dindex}{parent} = $parent;
 			$directories{$path} = $dindex;
 			if ( $parent != -1 ) { # new directory, add to immediate parent's dir count
