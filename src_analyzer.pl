@@ -112,8 +112,8 @@ for ( my $dir = 1; $dir < $total_dirs; $dir++ ) {
 	if ( $src_dirs{$dir}{sfile_count} > 0 ) {
 		my $pct = 100 * $src_dirs{$dir}{sfile_dupe_count}/$total_files;
 		my $local_pct = 100 * $src_dirs{$dir}{sfile_dupe_count}/$src_dirs{$dir}{sfile_count};
-		if ( $pct > $dir_dupe_file_total_pct || $local_pct > $dir_dupe_file_pct ) {
-			push @recommendations, int($pct)."% of Folder ". $src_dirs{$dir}{dir} ." is duplicated elsewhere (".$src_dirs{$dir}{sfile_dupe_count}." files)";
+		if ( int($pct) > int($dir_dupe_file_total_pct) or int($local_pct) > int($dir_dupe_file_pct) ) {
+			push @recommendations, int($local_pct)."% of ". $src_dirs{$dir}{dir} ." folder is duplicate files (".$src_dirs{$dir}{sfile_dupe_count}." duplicates, ".int($pct)."% of project total files)";
 		}
 	}
 }
